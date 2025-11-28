@@ -17,21 +17,20 @@ async function runBot() {
   const cookies = JSON.parse(fs.readFileSync("cookies.json"));
   await page.setCookie(...cookies);
 
-  // Cargar el servidor
+  // Ir al servidor
   await page.goto("https://panel.freegamehost.xyz/server/0bfe8b47", {
     waitUntil: "networkidle2"
   });
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  // Esperar el botón + Add 6 hours
   await page.waitForFunction(() => {
     return [...document.querySelectorAll("button")].some(btn =>
       btn.textContent.includes("+ Add 6 hours")
     );
   }, { timeout: 60000 });
 
-  // Hacer clic
+  // Clic al botón
   await page.evaluate(() => {
     const btn = [...document.querySelectorAll("button")].find(btn =>
       btn.textContent.includes("+ Add 6 hours")
@@ -43,9 +42,8 @@ async function runBot() {
   console.log("⌛ Esperando 5 segundos para que aparezca Cloudflare...");
   await sleep(5000);
 
-  // Buscar el iframe de Turnstile
+  // Buscar iframe del captcha
   console.log("🔍 Buscando iframe del captcha...");
-
   const frames = page.frames();
   let captchaFrame = null;
 
@@ -61,10 +59,13 @@ async function runBot() {
   } else {
     console.log("✔ Captcha encontrado. Intentando clic...");
 
-    try {
-      // Selector del checkbox de Turnstile
-      await captchaFrame.waitForSelector("input[type='checkbox']", { timeout: 20000 });
+    // 📸 **CAPTURA EN ESTE MOMENTO**
+    await page.screenshot({ path: "captcha.png" });
+    console.log("📸 Captura guardada como captcha.png");
 
+    try {
+      // Intentar encontrar checkbox
+      await captchaFrame.waitForSelector("input[type='checkbox']", { timeout: 20000 });
       await captchaFrame.click("input[type='checkbox']");
       console.log("✔ Clic en captcha realizado");
 
