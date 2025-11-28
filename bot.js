@@ -17,99 +17,51 @@ async function runBot() {
   const cookies = JSON.parse(fs.readFileSync("cookies.json"));
   await page.setCookie(...cookies);
 
-  // Ir al servidor
   await page.goto("https://panel.freegamehost.xyz/server/0bfe8b47", {
     waitUntil: "networkidle2"
   });
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  // Navegar la página entera buscando el botón
-  await page.evaluate(() => window.scrollTo(0, 0));
-  await sleep(2000);
-
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 3));
-  await sleep(2000);
-
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 1.5));
-  await sleep(2000);
-
-  // Esperar el botón en el DOM
   await page.waitForSelector("span.Button___StyledSpan-sc-1qu1gou-2", {
     timeout: 60000
   });
 
-  // Buscar el botón exacto + Add 6 hours
-  const buttonPosition = await page.evaluate(() => {
+  // Encontrar el botón exacto
+  const pos = await page.evaluate(() => {
     const spans = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
-    const target = spans.find(s => s.textContent.includes("+ Add 6 hours"));
-    if (!target) return null;
-
-    const rect = target.getBoundingClientRect();
+    const btn = spans.find(el => el.textContent.includes("+ Add 6 hours"));
+    if (!btn) return null;
+    const rect = btn.getBoundingClientRect();
     return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
   });
 
-  if (!buttonPosition) {
-    console.log("❌ No se encontró el botón '+ Add 6 hours'.");
+  if (!pos) {
+    console.log("❌ No se encontró el botón.");
     await browser.close();
     return;
   }
 
-  // Scroll hacia el botón
-  await page.evaluate(() => {
-    const spans = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
-    const target = spans.find(s => s.textContent.includes("+ Add 6 hours"));
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  });
+  // Scroll y clic
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
+  await sleep(1500);
 
-  await sleep(2000);
+  await page.mouse.click(pos.x, pos.y);
+  console.log("✔ Bot hizo clic en '+ Add 6 hours'");
 
-  console.log("✔ Bot encontró el botón y hará clic...");
-  await page.mouse.click(buttonPosition.x, buttonPosition.y);
+  // Esperar a que salga el challenge
+  console.log("⌛ Esperando que aparezca el challenge...");
 
-  console.log("⌛ Esperando 15 segundos para que aparezca Cloudflare...");
-  await sleep(15000);
+  await sleep(5000);
 
-  console.log("🔍 Buscando iframe del captcha...");
-  let captchaFrame = null;
+  // Tomar captura del challenge “Verificando…”
+  await page.screenshot({ path: "cloudflare_check.png" });
+  console.log("📸 Captura guardada: cloudflare_check.png");
 
-  for (const frame of page.frames()) {
-    if (frame.url().includes("challenges.cloudflare.com")) {
-      captchaFrame = frame;
-      break;
-    }
-  }
+  console.log("⌛ Esperando validación Cloudflare (20 segundos)...");
+  await sleep(20000);
 
-  if (!captchaFrame) {
-    console.log("❌ No se encontró el iframe del captcha.");
-  } else {
-    console.log("✔ Captcha encontrado. Preparando clic...");
-
-    // Captura antes de intentar el clic
-    await page.screenshot({ path: "captcha.png" });
-    console.log("📸 Captura guardada como captcha.png");
-
-    console.log("⌛ Esperando 15 segundos antes de intentar clic...");
-    await sleep(15000);
-
-    try {
-      await captchaFrame.waitForSelector("input[type='checkbox']", { timeout: 5000 });
-      await captchaFrame.click("input[type='checkbox']");
-      console.log("✔ Clic en captcha realizado.");
-    } catch {
-      console.log("❌ No hay checkbox visible. Cloudflare está usando Managed Challenge.");
-      console.log("⌛ Esperando validación silenciosa...");
-      await sleep(15000);
-    }
-  }
-
-  // Revisar si aumentaron las horas
-  console.log("🔍 Verificando si aumentaron las horas...");
-
-  const text = await page.evaluate(() => document.body.innerText);
-  console.log("\n📌 Estado actual:\n" + text);
+  console.log("✔ Cloudflare terminado. Finalizando proceso.");
 
   await browser.close();
 }
