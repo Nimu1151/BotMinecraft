@@ -1,12 +1,13 @@
 {
   "name": "freegamehost-bot",
   "version": "1.0.0",
+  "description": "Bot para extender servidor de FreeGameHost automáticamente",
+  "main": "bot.js",
   "scripts": {
-    "cookies": "node guardar-cookies.js",
     "start": "node bot.js"
   },
   "dependencies": {
-    "puppeteer": "^21.0.0",
+    "puppeteer": "^21.6.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2"
   }
