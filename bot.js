@@ -1,6 +1,19 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 
+function limpiarCookies(cookies) {
+  return cookies.map(c => {
+    // GitHub Actions NO permite estas propiedades
+    delete c.priority;
+    delete c.sameParty;
+    delete c.partitionKey;
+    delete c.sourcePort;
+    delete c.sourceScheme;
+    delete c.partition;
+    return c;
+  });
+}
+
 async function runBot() {
   console.log("🚀 Iniciando bot...");
 
@@ -11,60 +24,42 @@ async function runBot() {
 
   const page = await browser.newPage();
 
-  // ---------------------------
-  // 1. Cargar cookies
-  // ---------------------------
-  const cookies = JSON.parse(fs.readFileSync("cookies.json"));
+  // ===============================
+  // 1. Cargar cookies LIMPIAS
+  // ===============================
+  let cookies = JSON.parse(fs.readFileSync("cookies.json"));
+
+  // Limpieza para compatibilidad total
+  cookies = limpiarCookies(cookies);
+
   await page.setCookie(...cookies);
 
-  // ---------------------------
-  // 2. Ir al servidor
-  // ---------------------------
+  // ===============================
+  // 2. Ir a la página del servidor
+  // ===============================
   await page.goto("https://panel.freegamehost.xyz/server/0bfe8b47", {
     waitUntil: "networkidle2"
   });
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  // ---------------------------
-  // 3. Buscar el botón REAL
-  // ---------------------------
-  const renewSelector = "button.RenewBox___StyledButton3-sc-1inh2rq-22";
+  const boton = "button.RenewBox___StyledButton3-sc-1inh2rq-22";
 
-  await page.waitForSelector(renewSelector, { timeout: 60000 });
+  await page.waitForSelector(boton, { timeout: 60000 });
 
-  // Clic real
-  await page.click(renewSelector);
+  await page.click(boton);
+
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
 
+  // ===============================
+  // 3. Esperar Cloudflare
+  // ===============================
+  console.log("⌛ Esperando 20 segundos por Cloudflare...");
+  await new Promise(r => setTimeout(r, 20000));
 
-  // ---------------------------
-  // 4. Esperar a que aparezca Cloudflare
-  // ---------------------------
-  console.log("⌛ Esperando que aparezca Cloudflare...");
-
-  await page.waitForTimeout(5000); // 5 segundos para que aparezca
-
-  // ---------------------------
-  // 5. Tomar captura del challenge
-  // ---------------------------
-  try {
-    await page.screenshot({ path: "cloudflare_check.png" });
-    console.log("📸 Captura guardada: cloudflare_check.png");
-  } catch {
-    console.log("⚠ No se pudo capturar la pantalla.");
-  }
-
-  // ---------------------------
-  // 6. Esperar validación automática
-  // ---------------------------
-  console.log("⌛ Esperando validación Cloudflare (20 segundos)...");
-  await page.waitForTimeout(20000);
-
-  console.log("✔ Cloudflare terminado. Finalizando proceso.");
+  console.log("✔ Finalizado.");
 
   await browser.close();
 }
 
 runBot();
-
