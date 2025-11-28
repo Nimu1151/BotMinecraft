@@ -1,6 +1,10 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
 
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function runBot() {
   const browser = await puppeteer.launch({
     headless: true,
@@ -36,7 +40,7 @@ async function runBot() {
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
   console.log("⌛ Esperando 45 segundos (Cloudflare check)...");
 
-  await page.waitForTimeout(45000);
+  await sleep(45000);
 
   console.log("⏳ Verificando si el security check terminó...");
 
@@ -45,7 +49,7 @@ async function runBot() {
   });
 
   if (stillChecking) {
-    console.log("❌ Aún no pasó el security check. Intentando clic nuevamente...");
+    console.log("❌ Todavía no pasó el security check. Intentando clic nuevamente...");
 
     await page.evaluate(() => {
       const btn = [...document.querySelectorAll("button")].find(b =>
@@ -55,14 +59,12 @@ async function runBot() {
     });
 
     console.log("✔ Segundo intento realizado. Esperando 20 segundos...");
-    await page.waitForTimeout(20000);
+    await sleep(20000);
   }
 
   console.log("🔍 Verificando tiempo actualizado...");
 
   const time = await page.evaluate(() => {
-    const spans = [...document.querySelectorAll("span")];
-    const timer = spans.find(s => s.textContent.includes("TIME REMAINING"));
     return document.body.innerText;
   });
 
