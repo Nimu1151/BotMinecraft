@@ -17,7 +17,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'none'     # ❗ DESACTIVA EL CACHE DE NPM
+          # ❗ No usamos cache (lo eliminamos)
       
       - name: 🧹 Clear npm cache (previene corrupción)
         run: npm cache clean --force
