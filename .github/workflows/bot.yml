@@ -24,7 +24,7 @@ jobs:
       
       - name: 📦 Install dependencies
         run: |
-          npm ci --prefer-offline --no-audit
+          npm install
       
       - name: 🍪 Decode cookies from secrets
         env:
