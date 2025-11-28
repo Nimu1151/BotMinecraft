@@ -36,12 +36,30 @@ async function runBot() {
   });
 
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
-  console.log("⌛ Esperando 11 segundos...");
+  console.log("⌛ Esperando 30 segundos para el security check...");
 
-  // ⛔ FIX: reemplazo de waitForTimeout
-  await new Promise(resolve => setTimeout(resolve, 11000));
+  // Esperar 30 segundos (30000 ms)
+  await new Promise(resolve => setTimeout(resolve, 30000));
 
-  console.log("✔ 11 segundos completados.");
+  console.log("✔ 30 segundos completados. Verificando renovación...");
+
+  // VERIFICAR si ya cambió el texto
+  const result = await page.evaluate(() => {
+    const spans = [...document.querySelectorAll("span")];
+    const renewText = spans.find(s =>
+      s.textContent.includes("Renew in") ||
+      s.textContent.includes("hours") ||
+      s.textContent.includes("mins")
+    );
+    return renewText ? renewText.textContent.trim() : null;
+  });
+
+  if (result) {
+    console.log("✔ Renovación detectada:");
+    console.log("➡️ " + result);
+  } else {
+    console.log("❌ No se pudo verificar la renovación.");
+  }
 
   await browser.close();
 }
