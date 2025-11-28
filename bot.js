@@ -2,7 +2,7 @@ const puppeteer = require("puppeteer");
 const fs = require("fs");
 
 async function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise(res => setTimeout(res, ms));
 }
 
 async function runBot() {
@@ -17,51 +17,47 @@ async function runBot() {
   const cookies = JSON.parse(fs.readFileSync("cookies.json"));
   await page.setCookie(...cookies);
 
+  // Abrir página
   await page.goto("https://panel.freegamehost.xyz/server/0bfe8b47", {
     waitUntil: "networkidle2"
   });
 
-  console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
+  console.log("Página cargada. Buscando botón...");
 
-  await page.waitForSelector("span.Button___StyledSpan-sc-1qu1gou-2", {
-    timeout: 60000
+  // Esperar que aparezca cualquier botón de renovar
+  await page.waitForSelector("button", { timeout: 60000 });
+
+  // Clic REAL al botón
+  const clicked = await page.evaluate(() => {
+    const buttons = [...document.querySelectorAll("button")];
+    const target = buttons.find(b => b.innerText.includes("+ Add 6 hours"));
+    if (target) {
+      target.click();
+      return true;
+    }
+    return false;
   });
 
-  // Encontrar el botón exacto
-  const pos = await page.evaluate(() => {
-    const spans = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
-    const btn = spans.find(el => el.textContent.includes("+ Add 6 hours"));
-    if (!btn) return null;
-    const rect = btn.getBoundingClientRect();
-    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
-  });
-
-  if (!pos) {
-    console.log("❌ No se encontró el botón.");
+  if (!clicked) {
+    console.log("❌ No se encontró el botón '+ Add 6 hours'.");
     await browser.close();
     return;
   }
 
-  // Scroll y clic
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 2));
-  await sleep(1500);
+  console.log("✔ Bot hizo clic en el botón REAL '+ Add 6 hours'");
 
-  await page.mouse.click(pos.x, pos.y);
-  console.log("✔ Bot hizo clic en '+ Add 6 hours'");
-
-  // Esperar a que salga el challenge
+  // Esperar challenge
   console.log("⌛ Esperando que aparezca el challenge...");
-
   await sleep(5000);
 
-  // Tomar captura del challenge “Verificando…”
+  // Captura del challenge
   await page.screenshot({ path: "cloudflare_check.png" });
   console.log("📸 Captura guardada: cloudflare_check.png");
 
-  console.log("⌛ Esperando validación Cloudflare (20 segundos)...");
+  console.log("⌛ Esperando 20 segundos por Cloudflare...");
   await sleep(20000);
 
-  console.log("✔ Cloudflare terminado. Finalizando proceso.");
+  console.log("✔ Cloudflare terminado. Listo.");
 
   await browser.close();
 }
