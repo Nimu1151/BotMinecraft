@@ -20,24 +20,31 @@ async function runBot() {
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  // Esperar específicamente el botón con ese texto
+  // Esperar a que aparezca el botón correcto
   await page.waitForFunction(() => {
-    const buttons = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
-    return buttons.some(btn => btn.textContent.includes("+ Add 6 hours"));
-  }, { timeout: 60000 });
-
-  // Dar clic al botón correcto
-  await page.evaluate(() => {
-    const buttons = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
-    const target = buttons.find(btn =>
+    return [...document.querySelectorAll("button")].some(btn =>
       btn.textContent.includes("+ Add 6 hours")
     );
-    if (target) target.click();
+  }, { timeout: 60000 });
+
+  // Hacer clic en el botón
+  await page.evaluate(() => {
+    const btn = [...document.querySelectorAll("button")].find(b =>
+      b.textContent.includes("+ Add 6 hours")
+    );
+    if (btn) btn.click();
   });
 
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
+  console.log("⌛ Esperando 11 segundos...");
+
+  // Esperar 11 segundos
+  await page.waitForTimeout(11000);
+
+  console.log("✔ 11 segundos completados.");
 
   await browser.close();
 }
 
 runBot();
+
