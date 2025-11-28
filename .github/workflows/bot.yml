@@ -2,36 +2,30 @@ name: FreeGameHost Auto Extend
 
 on:
   schedule:
-    - cron: '0 */6 * * *'
+    - cron: "0 */6 * * *"
   workflow_dispatch:
 
 jobs:
-  extend-server-time:
+  extend-server:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-      
-      - name: 🟢 Setup Node.js
+
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          # ❗ No usamos cache (lo eliminamos)
-      
-      - name: 🧹 Clear npm cache (previene corrupción)
-        run: npm cache clean --force
-      
-      - name: 📦 Install dependencies (fresh install)
-        run: |
-          npm install --force
-      
-      - name: 🍪 Decode cookies from secrets
+
+      - name: Install dependencies
+        run: npm install --prefer-offline --no-audit --legacy-peer-deps
+
+      - name: Decode cookies
         env:
           COOKIES_BASE64: ${{ secrets.COOKIES_BASE64 }}
         run: |
           echo "$COOKIES_BASE64" | base64 -d > cookies.json
-      
-      - name: 🤖 Run bot
+
+      - name: Run bot
         run: node bot.js
-        timeout-minutes: 5
