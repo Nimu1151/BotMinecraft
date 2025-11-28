@@ -1,22 +1,36 @@
 name: FreeGameHost-Renew-Bot
+
 on:
   schedule:
     - cron: "30 */2 * * *"   # Cada 2 horas a los 30 minutos
   workflow_dispatch:
+
 jobs:
   run-bot:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
       - name: Setup Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
+
       - name: Install Puppeteer
         run: npm install puppeteer
+
       - name: Run Bot
         run: node bot.js
         env:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
+
+      # 📸 SUBIR CAPTURA COMO ARTIFACT
+      - name: Upload Captcha Screenshot
+        if: always()   # Se sube aunque falle el bot
+        uses: actions/upload-artifact@v3
+        with:
+          name: captcha-screenshot
+          path: captcha.png
