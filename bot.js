@@ -24,30 +24,58 @@ async function runBot() {
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  await page.waitForFunction(() => {
-    return [...document.querySelectorAll("button")].some(btn =>
-      btn.textContent.includes("+ Add 6 hours")
-    );
-  }, { timeout: 60000 });
+  // Navegar la página entera buscando el botón
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await sleep(2000);
 
-  // Clic al botón
-  await page.evaluate(() => {
-    const btn = [...document.querySelectorAll("button")].find(btn =>
-      btn.textContent.includes("+ Add 6 hours")
-    );
-    if (btn) btn.click();
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 3));
+  await sleep(2000);
+
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight / 1.5));
+  await sleep(2000);
+
+  // Esperar el botón en el DOM
+  await page.waitForSelector("span.Button___StyledSpan-sc-1qu1gou-2", {
+    timeout: 60000
   });
 
-  console.log("✔ Bot hizo clic en '+ Add 6 hours'");
-  console.log("⌛ Esperando 5 segundos para que aparezca Cloudflare...");
-  await sleep(5000);
+  // Buscar el botón exacto + Add 6 hours
+  const buttonPosition = await page.evaluate(() => {
+    const spans = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
+    const target = spans.find(s => s.textContent.includes("+ Add 6 hours"));
+    if (!target) return null;
 
-  // Buscar iframe del captcha
+    const rect = target.getBoundingClientRect();
+    return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+  });
+
+  if (!buttonPosition) {
+    console.log("❌ No se encontró el botón '+ Add 6 hours'.");
+    await browser.close();
+    return;
+  }
+
+  // Scroll hacia el botón
+  await page.evaluate(() => {
+    const spans = [...document.querySelectorAll("span.Button___StyledSpan-sc-1qu1gou-2")];
+    const target = spans.find(s => s.textContent.includes("+ Add 6 hours"));
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  });
+
+  await sleep(2000);
+
+  console.log("✔ Bot encontró el botón y hará clic...");
+  await page.mouse.click(buttonPosition.x, buttonPosition.y);
+
+  console.log("⌛ Esperando 15 segundos para que aparezca Cloudflare...");
+  await sleep(15000);
+
   console.log("🔍 Buscando iframe del captcha...");
-  const frames = page.frames();
   let captchaFrame = null;
 
-  for (const frame of frames) {
+  for (const frame of page.frames()) {
     if (frame.url().includes("challenges.cloudflare.com")) {
       captchaFrame = frame;
       break;
@@ -55,33 +83,33 @@ async function runBot() {
   }
 
   if (!captchaFrame) {
-    console.log("❌ No se encontró iframe del captcha.");
+    console.log("❌ No se encontró el iframe del captcha.");
   } else {
-    console.log("✔ Captcha encontrado. Intentando clic...");
+    console.log("✔ Captcha encontrado. Preparando clic...");
 
-    // 📸 **CAPTURA EN ESTE MOMENTO**
+    // Captura antes de intentar el clic
     await page.screenshot({ path: "captcha.png" });
     console.log("📸 Captura guardada como captcha.png");
 
-    try {
-      // Intentar encontrar checkbox
-      await captchaFrame.waitForSelector("input[type='checkbox']", { timeout: 20000 });
-      await captchaFrame.click("input[type='checkbox']");
-      console.log("✔ Clic en captcha realizado");
+    console.log("⌛ Esperando 15 segundos antes de intentar clic...");
+    await sleep(15000);
 
-      console.log("⌛ Esperando verificación...");
+    try {
+      await captchaFrame.waitForSelector("input[type='checkbox']", { timeout: 5000 });
+      await captchaFrame.click("input[type='checkbox']");
+      console.log("✔ Clic en captcha realizado.");
+    } catch {
+      console.log("❌ No hay checkbox visible. Cloudflare está usando Managed Challenge.");
+      console.log("⌛ Esperando validación silenciosa...");
       await sleep(15000);
-    } catch (err) {
-      console.log("❌ Error al intentar resolver captcha:", err);
     }
   }
 
+  // Revisar si aumentaron las horas
   console.log("🔍 Verificando si aumentaron las horas...");
 
   const text = await page.evaluate(() => document.body.innerText);
-
-  console.log("\n📌 Estado actual:");
-  console.log(text);
+  console.log("\n📌 Estado actual:\n" + text);
 
   await browser.close();
 }
