@@ -11,10 +11,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
 
@@ -27,10 +27,10 @@ jobs:
           EMAIL: ${{ secrets.EMAIL }}
           PASSWORD: ${{ secrets.PASSWORD }}
 
-      # 📸 SUBIR CAPTURA COMO ARTIFACT
+      # 📸 SUBIR CAPTURA COMO ARTIFACT (ACTUALIZADO A v4)
       - name: Upload Captcha Screenshot
-        if: always()   # Se sube aunque falle el bot
-        uses: actions/upload-artifact@v3
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: captcha-screenshot
           path: captcha.png
