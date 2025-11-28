@@ -9,7 +9,7 @@ async function runBot() {
 
   const page = await browser.newPage();
 
-  // Cargar cookies
+  // Cargar cookies compatibles
   const cookies = JSON.parse(fs.readFileSync("cookies.json"));
   await page.setCookie(...cookies);
 
@@ -20,14 +20,14 @@ async function runBot() {
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  // Esperar específicamente el botón correcto por texto
+  // Esperar el botón
   await page.waitForFunction(() => {
     return [...document.querySelectorAll("button")].some(btn =>
       btn.textContent.includes("+ Add 6 hours")
     );
   }, { timeout: 60000 });
 
-  // Hacer clic en el botón correcto
+  // Clic
   await page.evaluate(() => {
     const btn = [...document.querySelectorAll("button")].find(b =>
       b.textContent.includes("+ Add 6 hours")
@@ -38,28 +38,15 @@ async function runBot() {
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
   console.log("⌛ Esperando 30 segundos para el security check...");
 
-  // Esperar 30 segundos (30000 ms)
   await new Promise(resolve => setTimeout(resolve, 30000));
 
-  console.log("✔ 30 segundos completados. Verificando renovación...");
+  console.log("✔ Terminado. Verificando...");
 
-  // VERIFICAR si ya cambió el texto
   const result = await page.evaluate(() => {
-    const spans = [...document.querySelectorAll("span")];
-    const renewText = spans.find(s =>
-      s.textContent.includes("Renew in") ||
-      s.textContent.includes("hours") ||
-      s.textContent.includes("mins")
-    );
-    return renewText ? renewText.textContent.trim() : null;
+    return document.body.innerText;
   });
 
-  if (result) {
-    console.log("✔ Renovación detectada:");
-    console.log("➡️ " + result);
-  } else {
-    console.log("❌ No se pudo verificar la renovación.");
-  }
+  console.log(result);
 
   await browser.close();
 }
