@@ -3,7 +3,6 @@ const fs = require("fs");
 
 function limpiarCookies(cookies) {
   return cookies.map(c => {
-    // GitHub Actions NO permite estas propiedades
     delete c.priority;
     delete c.sameParty;
     delete c.partitionKey;
@@ -12,6 +11,10 @@ function limpiarCookies(cookies) {
     delete c.partition;
     return c;
   });
+}
+
+async function esperar(ms) {
+  return new Promise(r => setTimeout(r, ms));
 }
 
 async function runBot() {
@@ -28,14 +31,11 @@ async function runBot() {
   // 1. Cargar cookies LIMPIAS
   // ===============================
   let cookies = JSON.parse(fs.readFileSync("cookies.json"));
-
-  // Limpieza para compatibilidad total
   cookies = limpiarCookies(cookies);
-
   await page.setCookie(...cookies);
 
   // ===============================
-  // 2. Ir a la página del servidor
+  // 2. Entrar a la página
   // ===============================
   await page.goto("https://panel.freegamehost.xyz/server/0bfe8b47", {
     waitUntil: "networkidle2"
@@ -44,20 +44,44 @@ async function runBot() {
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
   const boton = "button.RenewBox___StyledButton3-sc-1inh2rq-22";
-
   await page.waitForSelector(boton, { timeout: 60000 });
 
-  await page.click(boton);
+  // ===============================
+  // 3. Mover mouse al botón antes del clic (simulación humana)
+  // ===============================
+  const botonElemento = await page.$(boton);
+  const box = await botonElemento.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
+    steps: 15
+  });
 
+  console.log("🖱️ Mouse sobre el botón…");
+
+  // ===============================
+  // 4. Hacer clic real
+  // ===============================
+  await botonElemento.click();
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
 
   // ===============================
-  // 3. Esperar Cloudflare
+  // 5. Mantener mouse encima por 20s
   // ===============================
-  console.log("⌛ Esperando 20 segundos por Cloudflare...");
-  await new Promise(r => setTimeout(r, 20000));
+  console.log("⌛ Manteniendo mouse sobre el botón por 20 segundos…");
 
-  console.log("✔ Finalizado.");
+  const tiempo = 20000;
+  const inicio = Date.now();
+
+  while (Date.now() - inicio < tiempo) {
+    // pequeño movimiento humano cada 1.5s
+    await page.mouse.move(
+      box.x + box.width / 2 + Math.random() * 10 - 5,
+      box.y + box.height / 2 + Math.random() * 10 - 5,
+      { steps: 5 }
+    );
+    await esperar(1500);
+  }
+
+  console.log("✔ Listo. Se simuló actividad humana por 20 segundos.");
 
   await browser.close();
 }
