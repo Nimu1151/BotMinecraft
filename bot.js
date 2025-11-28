@@ -9,25 +9,23 @@ async function runBot() {
 
   const page = await browser.newPage();
 
-  // Cargar cookies compatibles
+  // Cargar cookies
   const cookies = JSON.parse(fs.readFileSync("cookies.json"));
   await page.setCookie(...cookies);
 
-  // Ir directamente al servidor
+  // Ir al servidor
   await page.goto("https://panel.freegamehost.xyz/server/0bfe8b47", {
     waitUntil: "networkidle2"
   });
 
   console.log("Página cargada. Buscando botón '+ Add 6 hours'...");
 
-  // Esperar el botón
   await page.waitForFunction(() => {
     return [...document.querySelectorAll("button")].some(btn =>
       btn.textContent.includes("+ Add 6 hours")
     );
   }, { timeout: 60000 });
 
-  // Clic
   await page.evaluate(() => {
     const btn = [...document.querySelectorAll("button")].find(b =>
       b.textContent.includes("+ Add 6 hours")
@@ -36,17 +34,40 @@ async function runBot() {
   });
 
   console.log("✔ Bot hizo clic en '+ Add 6 hours'");
-  console.log("⌛ Esperando 30 segundos para el security check...");
+  console.log("⌛ Esperando 45 segundos (Cloudflare check)...");
 
-  await new Promise(resolve => setTimeout(resolve, 30000));
+  await page.waitForTimeout(45000);
 
-  console.log("✔ Terminado. Verificando...");
+  console.log("⏳ Verificando si el security check terminó...");
 
-  const result = await page.evaluate(() => {
+  const stillChecking = await page.evaluate(() => {
+    return document.body.innerText.includes("Please complete the security check");
+  });
+
+  if (stillChecking) {
+    console.log("❌ Aún no pasó el security check. Intentando clic nuevamente...");
+
+    await page.evaluate(() => {
+      const btn = [...document.querySelectorAll("button")].find(b =>
+        b.textContent.includes("+ Add 6 hours")
+      );
+      if (btn) btn.click();
+    });
+
+    console.log("✔ Segundo intento realizado. Esperando 20 segundos...");
+    await page.waitForTimeout(20000);
+  }
+
+  console.log("🔍 Verificando tiempo actualizado...");
+
+  const time = await page.evaluate(() => {
+    const spans = [...document.querySelectorAll("span")];
+    const timer = spans.find(s => s.textContent.includes("TIME REMAINING"));
     return document.body.innerText;
   });
 
-  console.log(result);
+  console.log("\n📌 Estado actual de la página:");
+  console.log(time);
 
   await browser.close();
 }
